@@ -1,43 +1,15 @@
-const path = require('path');
-const geoip = require('geoip-lite');
-const inputReader = require('wait-console-input');
-const { SHA3 } = require('sha3');
-const md5 = require('md5');
-const session = require('express-session');
-const swig = require('swig');
-const ipRangeCheck = require('ip-range-check');
-const bodyParser = require('body-parser');
-const fs = require('fs');
-const diff = require('./cemerick-jsdifflib.js');
-const cookieParser = require('cookie-parser');
-const child_process = require('child_process');
-const captchapng = require('captchapng');
 const _jsdom = require('jsdom');
-function jsdom(content) {
-	if(_jsdom.JSDOM) {
-		// JSDOM 신버전용 코드
-		return (new _jsdom.JSDOM(content)).window.document;
-	} else {
-		// JSDOM 9.12.0 버전용 코드
-		return _jsdom.jsdom(content);
-	}
-}
+function jsdom(content) { return (new _jsdom.JSDOM(content)).window.document; }
 
 const hostconfig = require('./hostconfig');
 const functions = require('./functions');
 for(var item in functions) global[item] = functions[item];
 
-const rHeadings = 
-	ver('4.7.2') 
-		? /^(=\s(((?!\s=).)*)\s=|==\s(((?!\s==).)*)\s==|===\s(((?!\s===).)*)\s===|====\s(((?!\s====).)*)\s====|=====\s(((?!\s=====).)*)\s=====|======\s(((?!\s======).)*)\s======|=[#]\s(((?!\s[#]=).)*)\s[#]=|==[#]\s(((?!\s[#]==).)*)\s[#]==|===[#]\s(((?!\s[#]===).)*)\s[#]===|====[#]\s(((?!\s[#]====).)*)\s[#]====|=====[#]\s(((?!\s[#]=====).)*)\s[#]=====|======[#]\s(((?!\s[#]======).)*)\s[#]======)$/gm
-		: /^(=\s(((?!\s=).)*)\s=|==\s(((?!\s==).)*)\s==|===\s(((?!\s===).)*)\s===|====\s(((?!\s====).)*)\s====|=====\s(((?!\s=====).)*)\s=====|======\s(((?!\s======).)*)\s======)$/gm ;
+const rHeadings = /^(=\s(((?!\s=).)*)\s=|==\s(((?!\s==).)*)\s==|===\s(((?!\s===).)*)\s===|====\s(((?!\s====).)*)\s====|=====\s(((?!\s=====).)*)\s=====|======\s(((?!\s======).)*)\s======|=[#]\s(((?!\s[#]=).)*)\s[#]=|==[#]\s(((?!\s[#]==).)*)\s[#]==|===[#]\s(((?!\s[#]===).)*)\s[#]===|====[#]\s(((?!\s[#]====).)*)\s[#]====|=====[#]\s(((?!\s[#]=====).)*)\s[#]=====|======[#]\s(((?!\s[#]======).)*)\s[#]======)$/gm
 
 const rHeading = [, ];
 for(var i=1; i<=6; i++) {
-	if(ver('4.7.2'))
-		rHeading.push(RegExp(`^${multiply('=', i)}([#]|)\\s(((?!${multiply('=', i)}).)*)\\s([#]|)${multiply('=', i)}$`, 'm'));
-	else
-		rHeading.push(RegExp(`^${multiply('=', i)}(\\s)(((?!${multiply('=', i)}).)*)(\\s)${multiply('=', i)}$`, 'm'));
+	rHeading.push(RegExp(`^${multiply('=', i)}([#]|)\\s(((?!${multiply('=', i)}).)*)\\s([#]|)${multiply('=', i)}$`, 'm'));
 }
 
 function parseTable(content) {
