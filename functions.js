@@ -41,20 +41,9 @@ Array.prototype.remove = function remove(item) {
 // 더 시드 모방 버전 (나중에 config.json에서 불러옴)
 const version = {
 	major: 4,
-	minor: 12,
+	minor: 25,
 	revision: 0,
 };
-
-if(hostconfig.theseed_version) {
-	var sp = hostconfig.theseed_version.split('.');
-	version.major = Number(sp[0]);
-	version.minor = Number(sp[1]);
-	version.revision = Number(sp[2]);
-}
-
-// 로그출력
-function print(x) { console.log(x); }
-function prt(x) { process.stdout.write(x); }
 
 var wikiconfig = {};  // 위키 설정 캐시
 var permlist = {};  // 권한 캐시
@@ -96,24 +85,11 @@ const whattr = {
 
 // 사용자 권한
 var perms = [
-	'hide_document_history_log', 'delete_thread', 'admin', 'editable_other_user_document', 'suspend_account', 'ipacl', 
-	'update_thread_status', 'acl', 'nsacl', 'hide_thread_comment', 'grant', 'no_force_recaptcha', 
+	'delete_thread', 'admin',
+	'update_thread_status', 'nsacl', 'hide_thread_comment', 'grant', 'no_force_recaptcha', 
 	'disable_two_factor_login', 'login_history', 'update_thread_document', 'update_thread_topic', 
 	'aclgroup', 'api_access', 
 ];
-var disable_autoperms = ['disable_two_factor_login'];
-
-if(ver('4.18.0')) perms.remove('ipacl'), perms.remove('suspend_account');
-else perms.remove('aclgroup');
-if(ver('4.2.0')) perms.remove('acl');
-if(!ver('4.20.0')) perms.remove('api_access');
-if(!ver('4.4.1')) perms.remove('disable_two_factor_login');
-if(!ver('4.4.2')) perms.remove('login_history');
-if(!ver('4.22.4')) perms.remove('hide_document_history_log');
-if(ver('4.18.0')) perms.remove('editable_other_user_document');
-if(!ver('4.4.3')) { perms.remove('update_thread_document'); perms.remove('update_thread_topic'); }
-if(!ver('4.0.20')) perms.push('developer', 'tribune', 'arbiter');
-if(hostconfig.debug) perms.push('debug');
 
 // 삐
 function beep(cnt = 1) { // 경고음 재생
