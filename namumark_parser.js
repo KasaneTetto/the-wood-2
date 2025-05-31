@@ -465,8 +465,7 @@ function parseIndent(data) {
 	return rows.join('\n');
 }
 
-module.exports = async function markdown(req, content, discussion = 0, title = '', flags = '', root = '') {
-	// markdown 아니고 namumark
+module.exports = async function namumark(req, content, discussion = 0, title = '', flags = '', root = '') {
 	flags = flags.split(' ');
 	
 	var footnotes = new Stack();
@@ -812,36 +811,8 @@ module.exports = async function markdown(req, content, discussion = 0, title = '
 	data = data.replace(/<divwikiindent\sclass[=]wiki[-]indent>\n/g, '<div class=wiki-indent>');
 	data = data.replace(/\n<\/divwikiindent>/g, '</div>');
 	
-	// 링크
-	for(let link of (data.match(/\[\[(((?!\]\]).)+)\]\]/g) || [])) {
-		var _dest = link.match(/\[\[(((?!\]\]).)+)\]\]/)[1];
-		var dest, disp;
-		if(_dest.includes('|')) {
-			dest = _dest.split('|')[0];
-			disp = _dest.split('|')[1];
-		} else dest = disp = _dest;
-		
-		const external = dest.startsWith('http://') || dest.startsWith('https://') || dest.startsWith('ftp://');
-		
-		const dd = dest.split('#');
-		if(!external) {
-			if(!dd[0] && dd[1]) dd[0] = title;
-			if(dest == disp) disp = dd[0];
-			dest = dd[0];
-		}
-		
-		var ddata = await curs.execute("select content from documents where title = ? and namespace = ?", [processTitle(dest.replace(/^([:]|\s)((분류|파일)[:])/, '$2')).title, processTitle(dest.replace(/^([:]|\s)((분류|파일)[:])/, '$2')).namespace]);
-		const notexist = !ddata.length ? ' not-exist' : '';
-		
-		if(dest.startsWith('분류:') && !discussion) {  // 분류
-			cates += `<li><a href="/w/${encodeURIComponent(dest)}" class="wiki-link-internal${notexist}">${html.escape(dest.replace('분류:', ''))}</a></li>`;
-			if(xref) {
-				curs.execute("insert into backlink (title, namespace, link, linkns, type) values (?, ?, ?, ?, 'category')", [doc.title, doc.namespace, dest.replace('분류:', ''), '분류']);
-			}
-			data = data.replace(link, '');
-			continue;
-		} 
-		if(dest.startsWith('파일:') && !discussion && !notexist) {  // 그림
+	// 파일 처리
+		if(dest.startsWith('파일:')) {
 			var linkdoc = processTitle(dest);
 			var filedata = await curs.execute("select url, size, width, height from files where title = ? and namespace = ?", [linkdoc.title, linkdoc.namespace]);
 			if(filedata.length) {
@@ -892,9 +863,38 @@ module.exports = async function markdown(req, content, discussion = 0, title = '
 						curs.execute("insert into backlink (title, namespace, link, linkns, type, exist) values (?, ?, ?, ?, 'file', ?)", [doc.title, doc.namespace, linkdoc.title, linkdoc.namespace, '1']);
 					}
 				}
-				continue;
 			}
 		}
+
+	// 링크
+	for(let link of (data.match(/\[\[(((?!\]\]).)+)\]\]/g) || [])) {
+		var _dest = link.match(/\[\[(((?!\]\]).)+)\]\]/)[1];
+		var dest, disp;
+		if(_dest.includes('|')) {
+			dest = _dest.split('|')[0];
+			disp = _dest.split('|')[1];
+		} else dest = disp = _dest;
+		
+		const external = dest.startsWith('http://') || dest.startsWith('https://') || dest.startsWith('ftp://');
+		
+		const dd = dest.split('#');
+		if(!external) {
+			if(!dd[0] && dd[1]) dd[0] = title;
+			if(dest == disp) disp = dd[0];
+			dest = dd[0];
+		}
+		
+		var ddata = await curs.execute("select content from documents where title = ? and namespace = ?", [processTitle(dest.replace(/^([:]|\s)((분류|파일)[:])/, '$2')).title, processTitle(dest.replace(/^([:]|\s)((분류|파일)[:])/, '$2')).namespace]);
+		const notexist = !ddata.length ? ' not-exist' : '';
+		
+		if(dest.startsWith('분류:') && !discussion) {  // 분류
+			cates += `<li><a href="/w/${encodeURIComponent(dest)}" class="wiki-link-internal${notexist}">${html.escape(dest.replace('분류:', ''))}</a></li>`;
+			if(xref) {
+				curs.execute("insert into backlink (title, namespace, link, linkns, type) values (?, ?, ?, ?, 'category')", [doc.title, doc.namespace, dest.replace('분류:', ''), '분류']);
+			}
+			data = data.replace(link, '');
+			continue;
+		} 
 		
 		if(dest == disp)
 			disp = disp.replace(/^([:]|\s)((분류|파일)[:])/, '$2');
@@ -963,7 +963,6 @@ module.exports = async function markdown(req, content, discussion = 0, title = '
 	data = data.replace(/<div class=wiki[-]heading[-]content>\n/g, '<div class=wiki-heading-content>');
 	
 	// 글자 꾸미기
-	if(verrev('4.7.5')) data = data.replace(/['][']['][']['](((?![']['][']['][']).)+)[']['][']['][']/g, '<strong><i>$1</i></strong>');
 	data = data.replace(/['][']['](((?![']['][']).)+)[']['][']/g, '<strong>$1</strong>');
 	data = data.replace(/[']['](((?!['][']).)+)['][']/g, '<i>$1</i>');
 	data = data.replace(/~~(((?!~~).)+)~~/g, '<del>$1</del>');
@@ -971,10 +970,6 @@ module.exports = async function markdown(req, content, discussion = 0, title = '
 	data = data.replace(/__(((?!__).)+)__/g, '<u>$1</u>');
 	data = data.replace(/[,][,](((?![,][,]).)+)[,][,]/g, '<sub>$1</sub>');
 	data = data.replace(/\^\^(((?!\^\^).)+)\^\^/g, '<sup>$1</sup>');
-	
-	// 글상자
-	if(verrev('4.7.4'))
-		data = data.replace(/{{[|](((?![|]}})(.|\n))+)[|]}}/g, '<div class=wiki-textbox>$1</div>');
 	
 	// 매크로
 	data = data.replace(/\[br\]/gi, '<br />');
@@ -985,6 +980,7 @@ module.exports = async function markdown(req, content, discussion = 0, title = '
 	data = data.replace(/\[(date|datetime)\((((?!\)).)*)\)\]/gi, generateTime(toDate(getTime()), timeFormat + 'O'));
 	data = data.replace(/\[(tableofcontents|목차)\]/gi, tochtml);
 	data = data.replace(/\[(tableofcontents|목차)\((((?!\)).)*)\)\]/gi, tochtml);
+	// 	data = data.replace(/\[(footnote|각주)\((((?!\)).)*)\)\]/gi, tochtml);
 	
 	var pgcnt = {};
 	var pgcnta = 0;
@@ -1058,7 +1054,7 @@ module.exports = async function markdown(req, content, discussion = 0, title = '
 				let def = pd[1] ? item.replace(param + '=', '') : '';
 				d = d.replace(itema, params[param] || def);
 			}
-			d = await markdown(req, d, 0, itf, 'include noframe', title);
+			d = await namumark(req, d, 0, itf, 'include noframe', title);
 			d = d.replace(/\[include[(](((?![)]).)+)[)]\]/gi, '');
 			
 			data = data.replace(finc, d);
