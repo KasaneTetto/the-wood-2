@@ -483,7 +483,6 @@ function newID() {
         'Downtown',
     ];
 
-    if(ver('4.16.1')) {
         pa = random.choice(b);
         pb = random.choice(b);
         pc = random.choice(b);
@@ -493,17 +492,6 @@ function newID() {
         if(pa == pc) pc = 'Free';
         if(pb == pc) pc = 'Cold';
         return pa + pb + pc + pd;
-    } else {
-        pa = random.choice(a);
-        pb = random.choice(b);
-        pc = random.choice(c);
-        pd = random.choice(b);
-        pe = random.choice(d);
-        if(['A', 'E', 'O', 'U', 'I'].includes(pb[0]) && pa == 'A')
-			pa = 'An';
-        if(pd == pb) pd = 'Soft';
-        return pa + pb + pc + pd + pe;
-	}
 }
 
 // 스택 (렌더러에 필요)
@@ -612,36 +600,6 @@ class Deque {
 		this._internalArray = [];
 	}
 };
-
-function ver(v) {
-	var sp = v.split('.');
-	var maj = Number(sp[0]);
-	var min = Number(sp[1]);
-	var rev = Number(sp[2]);
-	
-	if(version.major > maj) return true;
-	if(version.major < maj) return false;
-	if(version.minor > min) return true;
-	if(version.minor < min) return false;
-	if(version.revision >= rev) return true;
-	if(version.revision < rev) return false;
-	return true;
-}
-
-function verrev(v) {
-	var sp = v.split('.');
-	var maj = Number(sp[0]);
-	var min = Number(sp[1]);
-	var rev = Number(sp[2]);
-	
-	if(version.major < maj) return true;
-	if(version.major > maj) return false;
-	if(version.minor < min) return true;
-	if(version.minor > min) return false;
-	if(version.revision <= rev) return true;
-	if(version.revision > rev) return false;
-	return true;
-}
 
 // 위키 설정
 const config = {
@@ -879,12 +837,10 @@ const aclperms = {
 	member: '로그인된 사용자',
 	admin: '관리자',
 	member_signup_15days_ago: '가입한지 15일 지난 사용자',
-	suspend_account: (ver('4.18.0') ? undefined : '차단된 사용자'),
-	blocked_ipacl: (ver('4.18.0') ? undefined : '차단된 아이피'),
 	document_contributor: '해당 문서 기여자',
-	contributor: (ver('4.7.0') ? '위키 기여자' : undefined),
-	match_username_and_document_title: (ver('4.5.9') ? '문서 제목과 사용자 이름이 일치' : undefined),
-	ip: (ver('4.20.0') ? '아이피' : undefined),
+	contributor: '위키 기여자',
+	match_username_and_document_title: '문서 제목과 사용자 이름이 일치',
+	ip: '아이피',
 };
 
 // 차단된 사용자 제외 ACL 권한
@@ -895,7 +851,7 @@ const exaclperms = [
 // 오류메시지
 function fetchErrorString(code, ...params) {
 	const codes = {
-		permission: ver('4.0.18') ? '권한이 부족합니다.' : '관리자 권한입니다.',
+		permission:'권한이 부족합니다.',
 		permission_read: '읽기 권한이 부족합니다.',
 		permission_edit: '편집 권한이 부족합니다.',
 		permission_move: '이동 권한이 부족합니다.',
@@ -930,8 +886,8 @@ function fetchValue(code) {
 	const codes = {
 		username: '사용자 이름',
 		ip: 'IP 주소',
-		password: ver('4.18.6') ? '비밀번호' : '암호',
-		password_check: ver('4.18.6') ? '비밀번호 확인' : '암호 확인',
+		password: '비밀번호',
+		password_check: '비밀번호 확인'
 	};
 	
 	return codes[code] || code;
@@ -989,13 +945,13 @@ function err(type, obj) {
 
 // 오류화면 표시
 async function showError(req, code, ...params) {
-	return await render(req, ver('4.13.0') ? '오류' : '문제가 발생했습니다!', `${ver('4.13.0') ? '<div>' : '<h2>'}${typeof code == 'object' ? (code.msg || fetchErrorString(code.code, code.tag)) : fetchErrorString(code, ...params)}${ver('4.13.0') ? '</div>' : '</h2>'}`, {}, _, _, 'error');
+	return await render(req, '오류', `<div>${typeof code == 'object' ? (code.msg || fetchErrorString(code.code, code.tag)) : fetchErrorString(code, ...params)}</div>`, {}, _, _, 'error');
 }
 
 // 닉네임/아이피 파싱
 function ip_pas(ip = '', ismember = '', nobold, noagcss) {
 	var style = '';
-	if(ver('4.18.0') && !noagcss && aclgroupCache.group[ip.toLowerCase()])
+	if(!noagcss && aclgroupCache.group[ip.toLowerCase()])
 		for(var grp of aclgroupCache.group[ip.toLowerCase()])
 			style += aclgroupCache.css[grp] + '; ';
 	if(style)
@@ -1015,8 +971,8 @@ async function ipblocked(ip) {
 	
 	for(let row of ipacl) {
 		if(ipRangeCheck(ip, row.cidr)) {
-			if(row.al == '1') msg = '해당 IP는 반달 행위가 자주 발생하는 공용 아이피이므로 로그인이 필요합니다.<br />(이 메세지는 ' + (!ver('4.11.0') ? '본인이 반달을 했다기 보다는 해당 통신사를 쓰는' : '같은 인터넷 공급업체를 사용하는') + ' 다른 누군가가 해서 발생했을 확률이 높습니다.)<br />차단 만료일 : ' + (row.expiration == '0' ? '무기한' : new Date(Number(row.expiration))) + '<br />차단 사유 : ' + row.note;
-			else msg = 'IP가 차단되었습니다.' + (!ver('4.6.0') ? ' <a href="https://board.namu.wiki/whyiblocked">게시판</a>으로 문의해주세요.' : '') + '<br />차단 만료일 : ' + (row.expiration == '0' ? '무기한' : new Date(Number(row.expiration))) + '<br />차단 사유 : ' + row.note;
+			if(row.al == '1') msg = '해당 IP는 반달 행위가 자주 발생하는 공용 아이피이므로 로그인이 필요합니다.<br />(이 메세지는 본인이 반달을 했다기 보다는 해당 통신사를 쓰는 다른 누군가가 해서 발생했을 확률이 높습니다.)<br />차단 만료일 : ' + (row.expiration == '0' ? '무기한' : new Date(Number(row.expiration))) + '<br />차단 사유 : ' + row.note;
+			else msg = `IP가 차단되었습니다. <a href="${hostconfig.wiki_whyblocked}">게시판</a>으로 문의해주세요.<br />차단 만료일 : ${row.expiration == '0' ? '무기한' : new Date(Number(row.expiration))} <br />차단 사유 : ` + row.note;
 			return msg;
 		}
 	} return false;
@@ -1031,105 +987,26 @@ Array.prototype.remove = function remove(item) {
 
 // 계정 차단 여부
 async function userblocked(username) {
-	if(ver('4.18.0')) {
-		var dbdata = await curs.execute("select username, aclgroup from aclgroup where not expiration = '0' and ? > cast(expiration as integer)", [Number(getTime())]);
-		for(var item of dbdata) 
-			if(aclgroupCache.group[item.username.toLowerCase()])
-				aclgroupCache.group[item.username.toLowerCase()].remove(item.aclgroup);
-		await curs.execute("delete from aclgroup where not expiration = '0' and ? > cast(expiration as integer)", [Number(getTime())]);
-		var data = await curs.execute("select id, type, username, note, expiration, date from aclgroup where aclgroup = ? and username = ?", ['차단된 사용자', username]);
-		if(data.length) {
-			return {
-				username,
-				expiration: data[0].expiration,
-				note: data[0].note,
-				date: data[0].date,
-				id: data[0].id,
-			};
-		}
-	} else {
-		await curs.execute("delete from suspend_account where not expiration = '0' and ? > cast(expiration as integer)", [Number(getTime())]);
-		var data = await curs.execute("select expiration, note, date from suspend_account where username = ?", [username]);
-		if(data.length) {
-			return {
-				username,
-				expiration: data[0].expiration,
-				note: data[0].note,
-				date: data[0].date,
-			};
-		} else return false;
-	}
-}
-
-// 구 ACL 검사
-async function getacl2(req, title, namespace, type, getmsg) {
-	if(type == 'create_thread' || type == 'write_thread_comment')
-		type = 'discuss';
-	var acl = (await curs.execute("select read, edit, del, discuss, move from classic_acl where title = ? and namespace = ?", [title, namespace]))[0];
-	if(!acl) acl = {
-		read: 'everyone', 
-		edit: 'everyone', 
-		del: 'everyone', 
-		discuss: 'everyone', 
-		move: 'everyone' };
-	acl.delete = acl.del;
-	acl.edit_request = 'everyone';
-	var ret = 1, msg = '';
-	await curs.execute("delete from ipacl where not expiration = '0' and ? > cast(expiration as integer)", [Number(getTime())]);
 	var dbdata = await curs.execute("select username, aclgroup from aclgroup where not expiration = '0' and ? > cast(expiration as integer)", [Number(getTime())]);
-		for(var item of dbdata) 
-			if(aclgroupCache.group[item.username.toLowerCase()])
-				aclgroupCache.group[item.username.toLowerCase()].remove(item.aclgroup);
+	for(var item of dbdata) 
+		if(aclgroupCache.group[item.username.toLowerCase()])
+			aclgroupCache.group[item.username.toLowerCase()].remove(item.aclgroup);
 	await curs.execute("delete from aclgroup where not expiration = '0' and ? > cast(expiration as integer)", [Number(getTime())]);
-	var ipacl = await curs.execute("select cidr, al, expiration, note from ipacl order by cidr asc limit 50");
-	var blocked = 0;
-	if(type != 'read') {
-		for(let row of ipacl) {
-			if(ipRangeCheck(ip_check(req, 1), row.cidr) && !(islogin(req) && row.al == '1')) {
-				ret = 0;
-				if(row.al == '1') msg = '해당 IP는 반달 행위가 자주 발생하는 공용 아이피이므로 로그인이 필요합니다.<br />(이 메세지는 본인이 반달을 했다기 보다는 해당 통신사를 쓰는 다른 누군가가 해서 발생했을 확률이 높습니다.)<br />차단 만료일 : ' + (row.expiration == '0' ? '무기한' : new Date(Number(row.expiration))) + '<br />차단 사유 : ' + row.note;
-				else msg = 'IP가 차단되었습니다.' + (verrev('4.5.9') ? ' <a href="https://board.namu.wiki/whyiblocked">게시판</a>으로 문의해주세요.' : '') + '<br />차단 만료일 : ' + (row.expiration == '0' ? '무기한' : new Date(Number(row.expiration))) + '<br />차단 사유 : ' + row.note;
-				blocked = 1;
-				break;
-			}
-		}
-		if(islogin(req)) {
-			const bd = await userblocked(ip_check(req));
-			if(bd) {
-				ret = 0;
-				msg = '차단된 계정입니다.<br />차단 만료일 : ' + (bd.expiration == '0' ? '무기한' : new Date(Number(bd.expiration))) + '<br />차단 사유 : ' + bd.note;
-				blocked = 1;
-			}
-		}
+	var data = await curs.execute("select id, type, username, note, expiration, date from aclgroup where aclgroup = ? and username = ?", ['차단된 사용자', username]);
+	if(data.length) {
+		return {
+			username,
+			expiration: data[0].expiration,
+			note: data[0].note,
+			date: data[0].date,
+			id: data[0].id,
+		};
 	}
-	if(ret) switch(acl[type]) {
-		case 'everyone':
-			ret = 1;
-		break; case 'member':
-			ret = islogin(req);
-			if(!ret) msg = '로그인된 사용자만 가능합니다.';
-		break; case 'admin':
-			ret = hasperm(req, 'developer') || hasperm(req, 'admin') || hasperm(req, 'arbiter') || hasperm(req, 'tribune');
-			if(!ret) msg = '관리자만 가능합니다.';
-	}
-	if(type == 'edit' && namespace == '사용자' && (!islogin(req) || (islogin(req) && ip_check(req) != title)) && !hasperm(req, 'editable_other_user_document')) {
-		ret = 0;
-		// 문구 까먹음. 대충 생각나는 대로...
-		msg = '자신의 사용자 문서만 편집할 수 있습니다.';
-	}
-	if(!blocked && type == 'edit' && getmsg != 2 && msg)
-		msg += ' 대신 <strong><a href="/new_edit_request/' + encodeURIComponent(totitle(title, namespace) + '') + '">편집 요청</a></strong>을 생성하실 수 있습니다.';
-	if(!getmsg)
-		return ret;
-	else
-		return msg;
 }
 
 // ACL 검사
 async function getacl(req, title, namespace, type, getmsg, noeq) {
-	if(!ver('4.2.0'))
-		return await getacl2(req, title, namespace, type, getmsg);
-	
+
 	var ns  = await curs.execute("select id, action, expiration, condition, conditiontype from acl where namespace = ? and type = ? and ns = '1' order by cast(id as integer) asc", [namespace, type]);
 	var doc = await curs.execute("select id, action, expiration, condition, conditiontype from acl where title = ? and namespace = ? and type = ? and ns = '0' order by cast(id as integer) asc", [title, namespace, type]);
 	var flag = 0;
@@ -1153,7 +1030,7 @@ async function getacl(req, title, namespace, type, getmsg, noeq) {
 	var bbk = false;
 	
 	async function f(table, isns) {
-		if(!flag && (!table.length || (ver('4.16.0') && type == 'read'))) {
+		if(!flag && (!table.length || type == 'read')) {
 			flag = 1;
 			return await f(ns, 1);
 		}
@@ -1189,25 +1066,6 @@ async function getacl(req, title, namespace, type, getmsg, noeq) {
 							data = data[0];
 							if(new Date().getTime() >= Number(data.time) + 1296000000) ret = 1;
 						}
-					} break; case 'blocked_ipacl': {
-						if(!ver('4.18.0')) for(let row of ipacl) {
-							if(ipRangeCheck(ip_check(req, 1), row.cidr) && !(islogin(req) && row.al == '1')) {
-								ret = 1;
-								if(row.al == '1') msg = '해당 IP는 반달 행위가 자주 발생하는 공용 아이피이므로 로그인이 필요합니다.<br />(이 메세지는 본인이 반달을 했다기 보다는 해당 통신사를 쓰는 다른 누군가가 해서 발생했을 확률이 높습니다.)<br />차단 만료일 : ' + (row.expiration == '0' ? '무기한' : new Date(Number(row.expiration))) + '<br />차단 사유 : ' + row.note;
-								else msg = 'IP가 차단되었습니다.' + (verrev('4.5.9') ? ' <a href="https://board.namu.wiki/whyiblocked">게시판</a>으로 문의해주세요.' : '') + '<br />차단 만료일 : ' + (row.expiration == '0' ? '무기한' : new Date(Number(row.expiration))) + '<br />차단 사유 : ' + row.note;
-								bbk = true;
-								break;
-							}
-						}
-					} break; case 'suspend_account': {
-						if(!islogin(req)) break;
-						if(ver('4.18.0')) break;
-						const data = await userblocked(ip_check(req));
-						if(data) {
-							ret = 1;
-							msg = '차단된 계정입니다.<br />차단 만료일 : ' + (data.expiration == '0' ? '무기한' : new Date(Number(data.expiration))) + '<br />차단 사유 : ' + data.note;
-							bbk = true;
-						}
 					} break; case 'document_contributor': {
 						var data = await curs.execute("select rev from history where title = ? and namespace = ? and username = ? and ismember = ?", [title, namespace, ip_check(req), islogin(req) ? 'author' : 'ip']);
 						if(!data.length) break;
@@ -1223,7 +1081,6 @@ async function getacl(req, title, namespace, type, getmsg, noeq) {
 						
 						ret = 1;
 					} break; case 'contributor': {
-						if(!ver('4.7.0')) break;
 						
 						var data = await curs.execute("select rev from history where username = ? and ismember = ?", [ip_check(req), islogin(req) ? 'author' : 'ip']);
 						if(!data.length) break;
@@ -1239,11 +1096,7 @@ async function getacl(req, title, namespace, type, getmsg, noeq) {
 						
 						ret = 1;
 					} break; case 'match_username_and_document_title': {
-						if(ver('4.11.0')) {
-							if(islogin(req) && ip_check(req) == title.split('/')[0]) ret = 1;
-						} else {
-							if(islogin(req) && ip_check(req) == title) ret = 1;
-						}
+						if(islogin(req) && ip_check(req) == title.split('/')[0]) ret = 1;
 					} break; case 'ip': {
 						if(!islogin(req)) ret = 1;
 					} break; case 'bot': {
@@ -1262,7 +1115,7 @@ async function getacl(req, title, namespace, type, getmsg, noeq) {
 						r.msg = msg;
 						r.m1 = aclperms[row.condition] || row.condition;
 						break;
-					} else if(row.action == 'gotons' && ver('4.18.0')) {
+					} else if(row.action == 'gotons') {
 						r = await f(ns, 1);
 						break;
 					} else break;
@@ -1276,7 +1129,7 @@ async function getacl(req, title, namespace, type, getmsg, noeq) {
 						r.ret = 0;
 						r.m1 = 'member:' + row.condition;
 						break;
-					} else if(row.action == 'gotons' && ver('4.18.0')) {
+					} else if(row.action == 'gotons') {
 						r = await f(ns, 1);
 						break;
 					} else break;
@@ -1290,12 +1143,12 @@ async function getacl(req, title, namespace, type, getmsg, noeq) {
 						r.ret = 0;
 						r.m1 = 'ip:' + row.condition;
 						break;
-					} else if(row.action == 'gotons' && ver('4.18.0')) {
+					} else if(row.action == 'gotons') {
 						r = await f(ns, 1);
 						break;
 					} else break;
 				} else if(row.action == 'allow') r.m2 += 'ip:' + row.condition + ' OR ';
-			} else if(row.conditiontype == 'geoip' && ver('4.5.9')) {
+			} else if(row.conditiontype == 'geoip') {
 				if(geoip.lookup(ip_check(req, 1)).country == row.condition) {
 					if(row.action == 'allow') {
 						r.ret = 1;
@@ -1304,12 +1157,12 @@ async function getacl(req, title, namespace, type, getmsg, noeq) {
 						r.ret = 0;
 						r.m1 = 'geoip:' + row.condition;
 						break;
-					} else if(row.action == 'gotons' && ver('4.18.0')) {
+					} else if(row.action == 'gotons') {
 						r = await f(ns, 1);
 						break;
 					} else break;
 				} else if(row.action == 'allow') r.m2 += 'geoip:' + row.condition + ' OR ';
-			} else if(row.conditiontype == 'aclgroup' && ver('4.18.0')) {
+			} else if(row.conditiontype == 'aclgroup') {
 				var ag = null;
 				
 				for(let item of (aclgroup[row.condition] || [])) {
@@ -1328,7 +1181,7 @@ async function getacl(req, title, namespace, type, getmsg, noeq) {
 						else
 							r.msg = 'ACL그룹 ' + row.condition + ' #' + ag.id + '에 있기 때문에 ' + acltype[type] + ' 권한이 부족합니다.<br />만료일 : ' + (ag.expiration == '0' ? '무기한' : new Date(Number(ag.expiration))) + '<br />사유 : ' + ag.note;
 						break;
-					} else if(row.action == 'gotons' && ver('4.18.0')) {
+					} else if(row.action == 'gotons') {
 						r = await f(ns, 1);
 						break;
 					} else break;
@@ -1342,8 +1195,8 @@ async function getacl(req, title, namespace, type, getmsg, noeq) {
 	const r = await f(doc);
 	if(!getmsg) return r.ret;
 	if(!r.ret && !r.msg) {
-		r.msg = `${ver('4.7.0') && !r.m1 && !r.m2 ? 'ACL에 허용 규칙이 없기 때문에 ' : ''}${r.m1 && ver('4.7.0') ? r.m1 + '이기 때문에 ' : ''}${acltype[type]} 권한이 부족합니다.${r.m2 && ver('4.7.0') ? ' ' + r.m2.replace(/\sOR\s$/, '') + '(이)여야 합니다. ' : ''}`;
-		if(ver('4.5.9')) r.msg += ` 해당 문서의 <a href="/acl/${encodeURIComponent(totitle(title, namespace) + '')}">ACL 탭</a>을 확인하시기 바랍니다.`;
+		r.msg = `${!r.m1 && !r.m2 ? 'ACL에 허용 규칙이 없기 때문에 ' : ''}${r.m1 + '이기 때문에 '}${acltype[type]} 권한이 부족합니다.${r.m2 ? ' ' + r.m2.replace(/\sOR\s$/, '') + '(이)여야 합니다. ' : ''}`;
+		r.msg += ` 해당 문서의 <a href="/acl/${encodeURIComponent(totitle(title, namespace) + '')}">ACL 탭</a>을 확인하시기 바랍니다.`;
 		if(type == 'edit' && !bbk && !noeq)
 			r.msg += ' 대신 <strong><a href="/new_edit_request/' + encodeURIComponent(totitle(title, namespace) + '') + '">편집 요청</a></strong>을 생성하실 수 있습니다.';
 	}
@@ -1647,14 +1500,9 @@ function mailer(to, subject, content) {
 
 module.exports = {
 	version,
-	ver,
-	verrev,
 	
 	perms,
 	disable_autoperms,
-	
-	print,
-	prt,
 	
 	Stack,
 	Queue,
